@@ -1,0 +1,20 @@
+{
+    "name": "@audio/cubeb",
+    "description": "Node.js bindings for Cubeb (Firefox's audio library).",
+    "author": "Jamen Marz <me@jamenmarz.com>",
+    "license": "MIT",
+    "homepage": "https://github.com/audiojs/audio-cubeb",
+    "repository": "audiojs/node-cubeb",
+    "version": "0.1.0",
+    "main": "./dist/cubeb.js",
+    "dependencies": {
+        "prebuild-install": "^5.2.2"
+    },
+    "devDependencies": {
+        "audio-lena": "^2.1.1",
+        "cmake-js": "^4.0.1",
+        "node-addon-api": "^1.6.2",
+        "prebuild": "^8.1.2",
+        "segfault-handler": "^1.0.1"
+    }
+}

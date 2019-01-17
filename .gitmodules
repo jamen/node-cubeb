@@ -1,0 +1,3 @@
+[submodule "cubeb"]
+	path = cubeb
+	url = https://github.com/kinetiknz/cubeb.git
