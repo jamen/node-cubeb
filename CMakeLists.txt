@@ -4,6 +4,8 @@ project(node_cubeb)
 file(GLOB SOURCE_FILES "src/*.cc" "src/*.h")
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
 
+set(CMAKE_CXX_FAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DENABLE_DEBUG")
+
 set_target_properties(${PROJECT_NAME} PROPERTIES
     PREFIX ""
     SUFFIX ".node"
@@ -22,6 +24,7 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE ${CMAKE_JS_INC}
     PRIVATE "${CMAKE_SOURCE_DIR}/node_modules/node-addon-api"
     # Cubeb headers
+    PRIVATE "${CMAKE_SOURCE_DIR}/cubeb/src"
     PRIVATE "${CMAKE_SOURCE_DIR}/cubeb/build/exports"
     PRIVATE "${CMAKE_SOURCE_DIR}/cubeb/include"
 )

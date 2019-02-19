@@ -6,7 +6,7 @@
     "homepage": "https://github.com/audiojs/audio-cubeb",
     "repository": "audiojs/node-cubeb",
     "version": "0.1.0",
-    "main": "./dist/cubeb.js",
+    "main": "./dist/binding.js",
     "dependencies": {
         "prebuild-install": "^5.2.2"
     },

@@ -1,12 +1,16 @@
-const cubeb = require('../dist/cubeb.js')
-const sigfaultHandler = require('segfault-handler')
+const { Cubeb } = require('../dist/cubeb.js')
+// const sigfaultHandler = require('segfault-handler')
 
-sigfaultHandler.registerHandler('crash.log')
+// sigfaultHandler.registerHandler('crash.log')
 
-const context = cubeb.init("yeet")
+console.log(Cubeb)
 
-// console.log(cubeb.getMaxChannelCount(context))
+const cubeb = new Cubeb("yeet")
 
-// console.log(cubeb.getMinLatency(context, { channels: 2, sampleRate: 44100, type: 'int16' }))
+// console.log(cubeb.getMaxChannelCount())
 
-console.log(cubeb.getMinLatency(context, null))
+// console.log(cubeb.getBackendId())
+
+console.log(cubeb.getMinLatency({ channels: 2, sampleRate: 44100, type: 'int16' }))
+
+cubeb.destroy();
