@@ -1,5 +1,4 @@
-#ifndef CUBEB_JS_H
-#define CUBEB_JS_H
+#pragma once
 
 #include "napi.h"
 #include "cubeb/cubeb.h"
@@ -19,12 +18,13 @@ class CubebJs : public Napi::ObjectWrap<CubebJs> {
     private:
         static Napi::FunctionReference constructor;
 
-        Napi::Value Init(const Napi::CallbackInfo&);
         Napi::Value GetBackendId(const Napi::CallbackInfo&);
         Napi::Value GetMaxChannelCount(const Napi::CallbackInfo&);
         Napi::Value GetMinLatency(const Napi::CallbackInfo&);
         Napi::Value GetPreferredSampleRate(const Napi::CallbackInfo&);
-        Napi::Value Destroy(const Napi::CallbackInfo&);
+        Napi::Value CreateStream(const Napi::CallbackInfo&);
+        Napi::Value EnumerateDevices(const Napi::CallbackInfo&);
+        Napi::Value RegisterDeviceCollectionChanged(const Napi::CallbackInfo&);
 };
 
 void NoopJs(const Napi::CallbackInfo&);
@@ -39,6 +39,16 @@ class CubebJsStream : public Napi::ObjectWrap<CubebJsStream> {
 
     private:
         static Napi::FunctionReference constructor;
+
+        Napi::Value Start(const Napi::CallbackInfo&);
+        Napi::Value Stop(const Napi::CallbackInfo&);
+        Napi::Value ResetDefaultDevice(const Napi::CallbackInfo&);
+        Napi::Value GetPosition(const Napi::CallbackInfo&);
+        Napi::Value GetLatency(const Napi::CallbackInfo&);
+        Napi::Value SetVolume(const Napi::CallbackInfo&);
+        Napi::Value SetPanning(const Napi::CallbackInfo&);
+        Napi::Value GetCurrentDevice(const Napi::CallbackInfo&);
+        Napi::Value RegisterDeviceChangedCallback(const Napi::CallbackInfo&);
 };
 
 struct CubebJsUserData {
@@ -59,5 +69,3 @@ class CubebJsDevice : public Napi::ObjectWrap<CubebJsDevice> {
     private:
         static Napi::FunctionReference constructor;
 };
-
-#endif
