@@ -1,4 +1,9 @@
 #include "cubeb_js.h"
+#include "cubeb_js_device_collection.h"
+
+//
+// Cubeb: A context which manages streams and devices.
+//
 
 void JsObjectToCubebParams(Napi::Value value, cubeb_stream_params *params) {
     if (value.IsObject()) {
@@ -13,10 +18,6 @@ void JsObjectToCubebParams(Napi::Value value, cubeb_stream_params *params) {
         // Invalid type.
     }
 }
-
-//
-// Cubeb: A context which manages streams and devices.
-//
 
 Napi::FunctionReference CubebJs::constructor;
 
@@ -191,11 +192,11 @@ Napi::Value CubebJs::GetMinLatency(const Napi::CallbackInfo& info) {
         return env.Null();
     }
 
-    cubeb_stream_params * params = NULL;
-    JsObjectToCubebParams(info[0], params);
+    cubeb_stream_params params = {};
+    JsObjectToCubebParams(info[0], &params);
 
     uint32_t latency_frames = 0;
-    int status = cubeb_get_min_latency(this->internal_context, params, &latency_frames);
+    int status = cubeb_get_min_latency(this->internal_context, &params, &latency_frames);
 
     if (status == CUBEB_OK) {
         return Napi::Number::New(env, latency_frames);
@@ -241,210 +242,35 @@ Napi::Value CubebJs::GetPreferredSampleRate(const Napi::CallbackInfo& info) {
 //     return Napi::Boolean::New(env, true);
 // }
 
-Napi::Value CubebJs::CreateStream(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    return env.Null();
-}
+// Napi::Value CubebJs::CreateStream(const Napi::CallbackInfo& info) {
+//     Napi::Env env = info.Env();
+//     return env.Null();
+// }
 
 Napi::Value CubebJs::EnumerateDevices(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
-    return env.Null();
+    int argc = info.Length();
+
+    if (argc > 1) {
+        Napi::TypeError::New(env, "Wrong amount of arguments").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    int js_device_type = info[0].As<Napi::Number>().Int32Value();
+    cubeb_device_type device_type = static_cast<cubeb_device_type>(js_device_type);
+
+    cubeb_device_collection internal_device_collection;
+    cubeb_enumerate_devices(this->internal_context, device_type, &internal_device_collection);
+
+    Napi::ObjectWrap<CubebJsDeviceCollection> js_device_collection();
+    CubebJsDeviceCollection unwrapped_device_collection = Napi::ObjectWrap<CubebJsDeviceCollection>::Unwrap(js_device_collection);
+
+    js_device_collection->internal_device_collection = internal_device_collection;
+
+    return js_device_collection;
 }
 
 Napi::Value CubebJs::RegisterDeviceCollectionChanged(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     return env.Null();
 }
-
-//
-// CubebStream: An audio sink or source stream
-//
-
-void NoopJs(const Napi::CallbackInfo&) {}
-
-Napi::FunctionReference CubebJsStream::constructor;
-
-Napi::Object CubebJsStream::Init(Napi::Env env, Napi::Object exports) {
-    Napi::HandleScope scope(env);
-
-    Napi::Function func = DefineClass(env, "CubebStream", {
-        InstanceMethod("start", &CubebJsStream::Start),
-        InstanceMethod("stop", &CubebJsStream::Stop),
-        InstanceMethod("resetDefaultDevice", &CubebJsStream::ResetDefaultDevice),
-        InstanceMethod("getPosition", &CubebJsStream::GetPosition),
-        InstanceMethod("getLatency", &CubebJsStream::GetLatency),
-        InstanceMethod("setVolume", &CubebJsStream::SetVolume),
-        InstanceMethod("setPanning", &CubebJsStream::SetPanning),
-        InstanceMethod("getCurrentDevice", &CubebJsStream::GetCurrentDevice),
-        InstanceMethod("registerDeviceChangedCallback", &CubebJsStream::RegisterDeviceChangedCallback)
-    });
-
-    constructor = Napi::Persistent(func);
-    constructor.SuppressDestruct();
-
-    // TODO: Figure out how to use finalizeCallback in classes to destroy the Cubeb context when garbage collecting.
-
-    exports.Set("CubebStream", func);
-
-    return exports;
-}
-
-CubebJsStream::CubebJsStream(const Napi::CallbackInfo& info) : Napi::ObjectWrap<CubebJsStream>(info) {
-    Napi::Env env = info.Env();
-    int argc = info.Length();
-
-    // Cubeb params to be constructed from JS params.
-    char const * stream_name = "";
-    cubeb_devid input_devid = NULL;
-    cubeb_stream_params * output_stream_params = NULL;
-    cubeb_devid output_devid = NULL;
-    cubeb_stream_params * input_stream_params = NULL;
-    uint32_t latency_frames = 0;
-
-    // JS-defined functions passed into Cubeb's callbacks.
-    struct CubebJsUserData user_data = {
-        Napi::Function::New(env, NoopJs),
-        Napi::Function::New(env, NoopJs)
-    };
-
-    // Cubeb context
-    this->internal_context = NULL;
-    CubebJs * context = Napi::ObjectWrap<CubebJs>::Unwrap(info[0].As<Napi::Object>());
-    this->internal_context = context->internal_context;
-
-    // Stream name
-    std::string name = info[1].As<Napi::String>().Utf8Value();
-    stream_name = name.c_str();
-
-    // Input device
-    if (info[2].IsNumber()) {
-        CubebJsDevice * js_device_info = Napi::ObjectWrap<CubebJsDevice>::Unwrap(info[2].As<Napi::Object>());
-        input_devid = js_device_info->internal_device_info->devid;
-    }
-
-    // Input stream params
-    JsObjectToCubebParams(info[3], input_stream_params);
-
-    // Output device
-    if (info[4].IsNumber()) {
-        CubebJsDevice * js_device_info = Napi::ObjectWrap<CubebJsDevice>::Unwrap(info[4].As<Napi::Object>());
-        output_devid = js_device_info->internal_device_info->devid;
-    }
-
-    // Output stream params
-    JsObjectToCubebParams(info[5], output_stream_params);
-
-    // latency frames
-    latency_frames = info[6].As<Napi::Number>().Int32Value();
-
-    // Data callback
-    if (info[7].IsFunction()) {
-        user_data.js_data_callback = info[7].As<Napi::Function>();
-    }
-
-    // State callback
-    if (info[8].IsFunction()) {
-        user_data.js_state_callback = info[8].As<Napi::Function>();
-    }
-
-    this->internal_stream = NULL;
-
-    int status = cubeb_stream_init(
-        this->internal_context,
-        &this->internal_stream,
-        stream_name,
-        input_devid,
-        input_stream_params,
-        output_devid,
-        output_stream_params,
-        latency_frames,
-        CubebJsDataCallback,
-        CubebJsStateCallback,
-        &user_data
-    );
-}
-
-long CubebJsDataCallback(cubeb_stream * stream, void * user_ptr, void const * input_buffer, void * output_buffer, long nframes) {
-    return nframes;
-}
-
-void CubebJsStateCallback(cubeb_stream * stream, void * user_ptr, cubeb_state state) {
-
-}
-
-Napi::Value CubebJsStream::Start(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    return env.Null();
-}
-
-Napi::Value CubebJsStream::Stop(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    return env.Null();
-}
-
-Napi::Value CubebJsStream::ResetDefaultDevice(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    return env.Null();
-}
-
-Napi::Value CubebJsStream::GetPosition(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    return env.Null();
-}
-
-Napi::Value CubebJsStream::GetLatency(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    return env.Null();
-}
-
-Napi::Value CubebJsStream::SetVolume(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    return env.Null();
-}
-
-Napi::Value CubebJsStream::SetPanning(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    return env.Null();
-}
-
-Napi::Value CubebJsStream::GetCurrentDevice(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    return env.Null();
-}
-
-Napi::Value CubebJsStream::RegisterDeviceChangedCallback(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    return env.Null();
-}
-
-//
-// CubebDevice: An audio device used as a sink or source from a stream.
-//
-
-Napi::FunctionReference CubebJsDevice::constructor;
-
-Napi::Object CubebJsDevice::Init(Napi::Env env, Napi::Object exports) {
-    Napi::HandleScope scope(env);
-
-    Napi::Function func = DefineClass(env, "CubebDevice", {
-
-    });
-
-    constructor = Napi::Persistent(func);
-    constructor.SuppressDestruct();
-
-    // TODO: Figure out how to use finalizeCallback in classes to destroy the Cubeb context when garbage collecting.
-
-    exports.Set("CubebDevice", func);
-
-    return exports;
-}
-
-Napi::Object Init(Napi::Env env, Napi::Object exports) {
-    CubebJs::Init(env, exports);
-    CubebJsStream::Init(env, exports);
-    CubebJsDevice::Init(env, exports);
-    return exports;
-}
-
-NODE_API_MODULE(cubeb_js, Init)

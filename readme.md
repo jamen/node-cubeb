@@ -12,7 +12,7 @@ npm i @audio/node-cubeb
 
 ### Building
 
-Building the project manually involves a couple steps. You must have CMake installed, and Linux may also need `libasound2-dev` installed.
+To build the project you must have CMake installed. Linux may also need `libasound2-dev` installed.
 
 Get the Cubeb dependency using Git first:
 

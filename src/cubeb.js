@@ -1,1 +1,0 @@
-module.exports = require('./cubeb_js.node')

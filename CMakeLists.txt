@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(cubeb_js)
+project(binding)
 file(GLOB SOURCE_FILES "src/*.cc" "src/*.h")
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
 
@@ -36,7 +36,7 @@ endif()
 
 # Copy the JS module that imports the binary
 add_custom_command(
-    TARGET cubeb_js POST_BUILD
+    TARGET binding POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
             ${CMAKE_SOURCE_DIR}/src/cubeb.js
             ${CMAKE_SOURCE_DIR}/dist/cubeb.js
